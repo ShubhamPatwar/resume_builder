@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>3D Artist Resume Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:    #1A1F36;
+    --cyan:    #38BDF8;
+    --purple:  #7C3AED;
+    --green:   #059669;
+    --pink:    #DB2777;
+    --gold:    #D97706;
+    --blue:    #2563EB;
+    --bg:      #0D1117;
+    --surface: #161B22;
+    --border:  #30363D;
+    --text:    #E2E8F0;
+    --muted:   #94A3B8;
+    --card:    #1E2A3A;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── GRID BACKGROUND ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(56,189,248,0.06) 0%, transparent 100%);
+  }
+  header .badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 0.25rem 0.8rem;
+    border-radius: 2px;
+    margin-bottom: 1.2rem;
+    text-transform: uppercase;
+  }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--cyan) 50%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    display: grid;
+    grid-template-columns: 480px 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .app { grid-template-columns: 1fr; }
+    .preview-col { display: none; }
+  }
+
+  /* ─── FORM PANEL ─── */
+  .form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+  }
+  .form-panel::-webkit-scrollbar { width: 4px; }
+  .form-panel::-webkit-scrollbar-track { background: transparent; }
+  .form-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-tab {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .section-tab::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0;
+    padding: 0.85rem 1.1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  .form-body { padding: 1.5rem; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── FORM ELEMENTS ─── */
+  .field { margin-bottom: 1.1rem; }
+  .field label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--cyan);
+  }
+  .field textarea { min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  /* ─── PHOTO UPLOAD ─── */
+  .photo-upload {
+    position: relative;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 1.1rem;
+  }
+  .photo-upload:hover { border-color: var(--cyan); background: rgba(56,189,248,0.04); }
+  .photo-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .photo-upload .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .photo-upload p { color: var(--muted); font-size: 0.85rem; }
+  .photo-upload .preview-thumb {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--cyan);
+    margin: 0 auto 0.5rem;
+    display: none;
+  }
+  .photo-upload.has-photo .preview-thumb { display: block; }
+  .photo-upload.has-photo .upload-placeholder { display: none; }
+
+  /* ─── SKILL ROWS ─── */
+  .skill-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .skill-row input[type=text] { flex: 1; }
+  .skill-row input[type=range] {
+    flex: 0 0 100px;
+    accent-color: var(--cyan);
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .skill-row .skill-val {
+    flex: 0 0 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--cyan);
+    text-align: right;
+  }
+  .skill-row .rm-btn {
+    flex: 0 0 auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--pink);
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+  }
+  .skill-row .rm-btn:hover { background: rgba(219,39,119,0.15); }
+
+  /* ─── ADD BUTTONS ─── */
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--cyan);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 0.5rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .add-btn:hover { border-color: var(--cyan); background: rgba(56,189,248,0.05); }
+
+  /* ─── DOWNLOAD BUTTON ─── */
+  .dl-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .dl-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .dl-btn:active { transform: translateY(0); }
+  .dl-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ─── SECTION LABEL INSIDE FORM ─── */
+  .form-section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+    margin: 1.2rem 0 0.9rem;
+  }
+  .form-section-label:first-child { margin-top: 0; }
+
+  /* ─── PREVIEW COL ─── */
+  .preview-col {
+    position: sticky;
+    top: 1.5rem;
+  }
+  .preview-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .preview-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ─── RESUME PREVIEW ─── */
+  #resume-preview {
+    background: #F0F4FF;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.15);
+    transform-origin: top left;
+  }
+
+  /* ─── RESUME INNER STYLES (the actual resume) ─── */
+  .resume {
+    display: flex;
+    width: 794px; /* A4 at 96dpi */
+    min-height: 1123px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    line-height: 1.4;
+    background: #F0F4FF;
+  }
+
+  /* Sidebar */
+  .r-sidebar {
+    width: 238px;
+    flex-shrink: 0;
+    background: #1A1F36;
+    color: #CBD5E1;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Photo */
+  .r-photo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .r-photo-ring {
+    position: relative;
+    width: 96px;
+    height: 96px;
+  }
+  .r-photo-ring::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid #38BDF8;
+  }
+  .r-photo-ring::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+    border: 1px solid rgba(124,58,237,0.4);
+  }
+  .r-photo-ring img, .r-photo-ring .r-photo-placeholder {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+  .r-photo-placeholder {
+    background: #252D45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #475569;
+  }
+
+  /* Name */
+  .r-name {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .r-name-first {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.1em;
+    color: #38BDF8;
+    display: block;
+  }
+  .r-name-last {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.1em;
+    color: #fff;
+    display: block;
+    margin-top: -4px;
+  }
+  .r-name-divider {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #38BDF8, transparent);
+    margin: 5px auto 4px;
+  }
+  .r-tagline {
+    font-size: 7px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7C3AED;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* Sidebar section */
+  .r-s-section {
+    margin-top: 12px;
+  }
+  .r-s-heading {
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #38BDF8;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(56,189,248,0.25);
+    margin-bottom: 6px;
+  }
+
+  /* Contact */
+  .r-contact-row {
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+    margin-bottom: 4px;
+    font-size: 8.5px;
+  }
+  .r-contact-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 7px;
+    font-weight: 700;
+    color: #38BDF8;
+    min-width: 28px;
+  }
+  .r-contact-val { color: #CBD5E1; word-break: break-all; }
+
+  /* Skills */
+  .r-skill-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3.5px;
+    font-size: 8.5px;
+  }
+  .r-skill-name { flex: 1; color: #CBD5E1; }
+  .r-dots { display: flex; gap: 2px; }
+  .r-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .r-dot.on { background: #38BDF8; }
+  .r-dot.half { background: rgba(56,189,248,0.35); }
+
+  /* Pills */
+  .r-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .r-pill {
+    font-size: 7.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+
+  /* Strengths */
+  .r-strength { font-size: 8.5px; color: #CBD5E1; margin-bottom: 3px; }
+  .r-strength::before { content: '▷ '; color: #38BDF8; }
+
+  /* ─── RIGHT SIDE ─── */
+  .r-main {
+    flex: 1;
+    padding: 16px 16px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Badge bar */
+  .r-badge-bar {
+    background: #fff;
+    border: 1px solid #DBEAFE;
+    border-radius: 5px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    border-left: 3px solid #2563EB;
+  }
+  .r-badges { display: flex; gap: 5px; }
+  .r-badge {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .r-avail {
+    font-size: 7.5px;
+    color: #475569;
+  }
+
+  /* Section heading */
+  .r-m-section { margin-bottom: 8px; }
+  .r-m-heading {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #2563EB;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+  .r-m-heading::before { content: '▷'; font-size: 7px; }
+  .r-m-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(37,99,235,0.25);
+  }
+
+  /* Profile text */
+  .r-profile-text {
+    font-size: 8.8px;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  /* Education card */
+  .r-edu-card {
+    background: #fff;
+    border: 1px solid #DBEAFE;
+    border-radius: 4px;
+    border-top: 3px solid #D97706;
+    padding: 6px 9px;
+  }
+  .r-edu-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .r-edu-degree { font-size: 10px; font-weight: 700; color: #1E293B; }
+  .r-edu-year { font-size: 8px; font-weight: 700; color: #D97706; }
+  .r-edu-uni { font-size: 8.5px; color: #475569; }
+  .r-edu-spec { font-size: 8px; color: #7C3AED; margin-top: 1px; }
+
+  /* Experience cards */
+  .r-exp-card {
+    background: #fff;
+    border: 1px solid #DBEAFE;
+    border-radius: 4px;
+    border-left: 3px solid #2563EB;
+    padding: 6px 9px;
+    margin-bottom: 5px;
+  }
+  .r-exp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .r-exp-title { font-size: 9.5px; font-weight: 700; color: #1E293B; }
+  .r-exp-label { font-size: 8px; font-weight: 700; }
+  .r-exp-bullet {
+    font-size: 8.5px;
+    color: #475569;
+    margin-bottom: 2px;
+    padding-left: 8px;
+    position: relative;
+  }
+  .r-exp-bullet::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #2563EB;
+  }
+
+  /* Projects */
+  .r-projects-row { display: flex; gap: 6px; }
+  .r-proj-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #DBEAFE;
+    border-radius: 4px;
+    padding: 7px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .r-proj-title {
+    font-size: 9px;
+    font-weight: 700;
+    padding-bottom: 3px;
+    border-bottom: 2px solid;
+    margin-bottom: 2px;
+  }
+  .r-proj-desc { font-size: 8px; color: #475569; flex: 1; }
+  .r-proj-tags { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+  .r-proj-tag {
+    font-size: 7px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  /* Achievements */
+  .r-ach-card {
+    background: #fff;
+    border: 1px solid #DBEAFE;
+    border-radius: 4px;
+    padding: 6px 9px;
+  }
+  .r-ach-row { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .r-ach-item { font-size: 8.5px; font-weight: 700; }
+  .r-ach-item::before { content: '★ '; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--card);
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+    z-index: 9999;
+    transform: translateY(4rem);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── PROGRESS ─── */
+  progress-ring { display: none; }
+  .loading-text { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">3D Artist · VFX · Game Art</div>
+  <h1>RESUME BUILDER</h1>
+  <p>Fill in your details → Download a pixel-perfect PDF instantly</p>
+</header>
+
+<div class="app">
+  <!-- ══════════════════════════════════════
+       FORM PANEL
+  ══════════════════════════════════════ -->
+  <div class="form-panel">
+    <div class="section-tab">
+      <button class="tab-btn active" data-tab="tab-info">Info</button>
+      <button class="tab-btn" data-tab="tab-skills">Skills</button>
+      <button class="tab-btn" data-tab="tab-exp">Experience</button>
+      <button class="tab-btn" data-tab="tab-projects">Projects</button>
+      <button class="tab-btn" data-tab="tab-extra">Extra</button>
+    </div>
+
+    <div class="form-body">
+
+      <!-- ── TAB: INFO ── -->
+      <div class="tab-panel active" id="tab-info">
+        <p class="form-section-label">Photo</p>
+        <div class="photo-upload" id="photo-drop">
+          <input type="file" accept="image/*" id="photo-input"/>
+          <img class="preview-thumb" id="photo-thumb" src="" alt=""/>
+          <div class="upload-placeholder">
+            <div class="icon">🎮</div>
+            <p>Click or drag your photo here<br><small style="color:var(--muted)">JPG, PNG — square crop recommended</small></p>
+          </div>
+        </div>
+
+        <p class="form-section-label">Personal</p>
+        <div class="field-row">
+          <div class="field">
+            <label>First Name</label>
+            <input type="text" id="f-firstname" value="Sameer" placeholder="First name"/>
+          </div>
+          <div class="field">
+            <label>Last Name</label>
+            <input type="text" id="f-lastname" value="Patwar" placeholder="Last name"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tagline / Role</label>
+          <input type="text" id="f-tagline" value="3D Artist · VFX · Game Art" placeholder="e.g. 3D Artist · VFX · Game Art"/>
+        </div>
+        <div class="field">
+          <label>Profile Summary</label>
+          <textarea id="f-profile">Creative and detail-oriented 3rd Year B.Sc. Animation student at AAFT University, Raipur. Passionate about 3D modeling, environment design, and real-time game assets. Experienced delivering freelance projects and large-scale environments including a full 3D city in Blender.</textarea>
+        </div>
+
+        <p class="form-section-label">Contact</p>
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="f-phone" value="9340369078"/>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" id="f-location" value="Raipur, Chhattisgarh"/>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="f-email" value="your-email@gmail.com"/>
+        </div>
+        <div class="field">
+          <label>Website / Portfolio</label>
+          <input type="text" id="f-website" value="yourwebsite.com"/>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>YouTube</label>
+            <input type="text" id="f-youtube" value="YouTube Channel"/>
+          </div>
+          <div class="field">
+            <label>Instagram</label>
+            <input type="text" id="f-instagram" value="Instagram Page"/>
+          </div>
+        </div>
+
+        <p class="form-section-label">Education</p>
+        <div class="field">
+          <label>Degree</label>
+          <input type="text" id="f-degree" value="B.Sc. in Animation"/>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>University</label>
+            <input type="text" id="f-university" value="AAFT University, Raipur"/>
+          </div>
+          <div class="field">
+            <label>Year</label>
+            <input type="text" id="f-year" value="Expected 2027"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Current Year / Status</label>
+          <input type="text" id="f-edstatus" value="Currently in 3rd Year"/>
+        </div>
+        <div class="field">
+          <label>Specialization</label>
+          <input type="text" id="f-spec" value="3D Art, Animation, VFX Production"/>
+        </div>
+
+        <p class="form-section-label">Availability</p>
+        <div class="field">
+          <label>Open to (shown in badge bar)</label>
+          <input type="text" id="f-avail" value="Open to Internships · Freelance · Full-Time · Graduating 2027"/>
+        </div>
+      </div>
+
+      <!-- ── TAB: SKILLS ── -->
+      <div class="tab-panel" id="tab-skills">
+        <p class="form-section-label">Skills (name + level 1–5)</p>
+        <div id="skills-list"></div>
+        <button class="add-btn" id="add-skill">+ Add Skill</button>
+
+        <p class="form-section-label">Software Tags</p>
+        <div class="field">
+          <label>Tags (comma separated)</label>
+          <input type="text" id="f-software" value="Blender, Unity, Cycles, EEVEE, OBJ/FBX, Android"/>
+        </div>
+
+        <p class="form-section-label">Strengths</p>
+        <div class="field">
+          <label>Strengths (one per line)</label>
+          <textarea id="f-strengths">Creative Thinking
+Visual Storytelling
+Game-Ready Assets
+Self-Motivated
+Content Creation</textarea>
+        </div>
+
+        <p class="form-section-label">Top Badges (right side header)</p>
+        <div class="field">
+          <label>Badges (comma separated, max 4)</label>
+          <input type="text" id="f-badges" value="GAME ART, VFX, 3D DESIGN, ENVIRONMENT"/>
+        </div>
+      </div>
+
+      <!-- ── TAB: EXPERIENCE ── -->
+      <div class="tab-panel" id="tab-exp">
+        <p class="form-section-label">Work Experience</p>
+        <div id="exp-list"></div>
+        <button class="add-btn" id="add-exp">+ Add Experience</button>
+      </div>
+
+      <!-- ── TAB: PROJECTS ── -->
+      <div class="tab-panel" id="tab-projects">
+        <p class="form-section-label">Featured Projects (shown side by side)</p>
+        <div id="proj-list"></div>
+        <button class="add-btn" id="add-proj">+ Add Project</button>
+      </div>
+
+      <!-- ── TAB: EXTRA ── -->
+      <div class="tab-panel" id="tab-extra">
+        <p class="form-section-label">Achievements</p>
+        <div class="field">
+          <label>Achievements (one per line)</label>
+          <textarea id="f-achievements">5 Certified Freelance Projects
+Full-Scale 3D City
+YouTube Tutorial Series
+Personal Portfolio Website
+Institutional 3D Contributor
+Active Online Presence</textarea>
+        </div>
+      </div>
+
+    </div><!-- /form-body -->
+
+    <div style="padding: 0 1.5rem 1.5rem;">
+      <button class="dl-btn" id="dl-btn">
+        ⬇ Download PDF Resume
+      </button>
+    </div>
+  </div><!-- /form-panel -->
+
+  <!-- ══════════════════════════════════════
+       LIVE PREVIEW
+  ══════════════════════════════════════ -->
+  <div class="preview-col">
+    <div class="preview-label">Live Preview</div>
+    <div style="overflow:auto; border-radius:8px;">
+      <div id="resume-preview" style="transform-origin:top left;">
+        <div class="resume" id="resume-root">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+const DEFAULT_SKILLS = [
+  { name: 'Blender',              level: 5 },
+  { name: '3D Modeling',          level: 4 },
+  { name: 'Texturing',            level: 4 },
+  { name: 'Lighting & Rendering', level: 4 },
+  { name: 'Environment Design',   level: 5 },
+  { name: 'Unity (Android)',      level: 3 },
+  { name: 'Animation',            level: 3 },
+];
+
+const DEFAULT_EXP = [
+  {
+    title: 'Freelance 3D Artist',
+    label: '5+ Certified Projects',
+    labelColor: '#059669',
+    accentColor: '#DB2777',
+    bullets: [
+      'Delivered high-quality 3D assets and environments on time for diverse clients.',
+      'Translated creative briefs into polished, production-ready 3D deliverables.',
+      'Projects span modeling, texturing, lighting, rendering & full asset pipelines.',
+    ]
+  },
+  {
+    title: '3D Contributor — Raipur Institute of Technology',
+    label: '',
+    labelColor: '#059669',
+    accentColor: '#7C3AED',
+    bullets: [
+      'Created 3D visual assets for institutional presentations and marketing.',
+      'Worked with faculty to meet creative and visual standards.',
+    ]
+  },
+  {
+    title: 'Content Creator — YouTube & Instagram',
+    label: '',
+    labelColor: '#059669',
+    accentColor: '#059669',
+    bullets: [
+      'Publishes Blender tutorials, project walkthroughs & a complete tutorial series.',
+      'Built a growing, consistent online creative presence across platforms.',
+    ]
+  },
+];
+
+const DEFAULT_PROJ = [
+  {
+    title: 'Full 3D City',
+    titleColor: '#D97706',
+    desc: 'Complete city: buildings, roads, textures, lighting & render in Blender. Appreciated on social media.',
+    tags: ['Blender','Cycles','EEVEE'],
+    tagColors: ['#2563EB','#7C3AED','#DB2777'],
+  },
+  {
+    title: 'Unity 3D Models',
+    titleColor: '#0284C7',
+    desc: 'Real-time 3D models for Android game engines. Foundation for the full Blender pipeline transition.',
+    tags: ['Unity','OBJ/FBX'],
+    tagColors: ['#059669','#0284C7'],
+  },
+];
+
+let skills = JSON.parse(JSON.stringify(DEFAULT_SKILLS));
+let experiences = JSON.parse(JSON.stringify(DEFAULT_EXP));
+let projects = JSON.parse(JSON.stringify(DEFAULT_PROJ));
+let photoDataUrl = null;
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ═══════════════════════════════════
+// PHOTO UPLOAD
+// ═══════════════════════════════════
+document.getElementById('photo-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoDataUrl = e.target.result;
+    document.getElementById('photo-thumb').src = photoDataUrl;
+    document.getElementById('photo-drop').classList.add('has-photo');
+    renderResume();
+  };
+  reader.readAsDataURL(file);
+});
+
+// ═══════════════════════════════════
+// SKILLS EDITOR
+// ═══════════════════════════════════
+function renderSkillsEditor() {
+  const list = document.getElementById('skills-list');
+  list.innerHTML = '';
+  skills.forEach((sk, i) => {
+    const row = document.createElement('div');
+    row.className = 'skill-row';
+    row.innerHTML = `
+      <input type="text" value="${sk.name}" placeholder="Skill name" data-i="${i}" data-field="name"/>
+      <input type="range" min="1" max="5" value="${sk.level}" data-i="${i}" data-field="level"/>
+      <span class="skill-val">${sk.level}/5</span>
+      <button class="rm-btn" data-i="${i}">✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input[data-field="name"]').forEach(el => {
+    el.addEventListener('input', () => { skills[el.dataset.i].name = el.value; renderResume(); });
+  });
+  list.querySelectorAll('input[data-field="level"]').forEach(el => {
+    el.addEventListener('input', () => {
+      skills[el.dataset.i].level = +el.value;
+      el.nextElementSibling.textContent = el.value + '/5';
+      renderResume();
+    });
+  });
+  list.querySelectorAll('.rm-btn').forEach(el => {
+    el.addEventListener('click', () => { skills.splice(+el.dataset.i, 1); renderSkillsEditor(); renderResume(); });
+  });
+}
+
+document.getElementById('add-skill').addEventListener('click', () => {
+  skills.push({ name: 'New Skill', level: 3 });
+  renderSkillsEditor();
+  renderResume();
+});
+
+renderSkillsEditor();
+
+// ═══════════════════════════════════
+// EXPERIENCE EDITOR
+// ═══════════════════════════════════
+const ACCENT_COLORS = ['#DB2777','#7C3AED','#059669','#D97706','#0284C7','#2563EB'];
+
+function renderExpEditor() {
+  const list = document.getElementById('exp-list');
+  list.innerHTML = '';
+  experiences.forEach((exp, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:0.75rem;';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+        <span style="font-family:Space Mono,monospace;font-size:0.65rem;color:var(--muted);">EXPERIENCE ${i+1}</span>
+        <button class="rm-btn" data-i="${i}" style="font-size:0.75rem;">✕ Remove</button>
+      </div>
+      <div class="field"><label>Job Title</label>
+        <input type="text" value="${exp.title}" data-i="${i}" data-field="title"/></div>
+      <div class="field-row">
+        <div class="field"><label>Right Label (optional)</label>
+          <input type="text" value="${exp.label}" data-i="${i}" data-field="label"/></div>
+        <div class="field"><label>Accent Color</label>
+          <input type="color" value="${exp.accentColor}" data-i="${i}" data-field="accentColor"
+            style="height:38px;width:100%;padding:2px 4px;background:var(--card);border:1px solid var(--border);border-radius:6px;cursor:pointer;"/></div>
+      </div>
+      <div class="field"><label>Bullet Points (one per line)</label>
+        <textarea data-i="${i}" data-field="bullets">${exp.bullets.join('\n')}</textarea></div>
+    `;
+    list.appendChild(div);
+  });
+
+  list.querySelectorAll('input[data-field="title"]').forEach(el => {
+    el.addEventListener('input', () => { experiences[el.dataset.i].title = el.value; renderResume(); });
+  });
+  list.querySelectorAll('input[data-field="label"]').forEach(el => {
+    el.addEventListener('input', () => { experiences[el.dataset.i].label = el.value; renderResume(); });
+  });
+  list.querySelectorAll('input[data-field="accentColor"]').forEach(el => {
+    el.addEventListener('input', () => { experiences[el.dataset.i].accentColor = el.value; renderResume(); });
+  });
+  list.querySelectorAll('textarea[data-field="bullets"]').forEach(el => {
+    el.addEventListener('input', () => {
+      experiences[el.dataset.i].bullets = el.value.split('\n').filter(l => l.trim());
+      renderResume();
+    });
+  });
+  list.querySelectorAll('.rm-btn').forEach(el => {
+    el.addEventListener('click', () => { experiences.splice(+el.dataset.i, 1); renderExpEditor(); renderResume(); });
+  });
+}
+
+document.getElementById('add-exp').addEventListener('click', () => {
+  experiences.push({ title: 'New Role', label: '', labelColor: '#059669', accentColor: '#2563EB', bullets: ['Describe your work here.'] });
+  renderExpEditor(); renderResume();
+});
+
+renderExpEditor();
+
+// ═══════════════════════════════════
+// PROJECTS EDITOR
+// ═══════════════════════════════════
+function renderProjEditor() {
+  const list = document.getElementById('proj-list');
+  list.innerHTML = '';
+  projects.forEach((proj, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:0.75rem;';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+        <span style="font-family:Space Mono,monospace;font-size:0.65rem;color:var(--muted);">PROJECT ${i+1}</span>
+        <button class="rm-btn" data-i="${i}" style="font-size:0.75rem;">✕ Remove</button>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Project Title</label>
+          <input type="text" value="${proj.title}" data-i="${i}" data-field="title"/></div>
+        <div class="field"><label>Title Color</label>
+          <input type="color" value="${proj.titleColor}" data-i="${i}" data-field="titleColor"
+            style="height:38px;width:100%;padding:2px 4px;background:var(--card);border:1px solid var(--border);border-radius:6px;cursor:pointer;"/></div>
+      </div>
+      <div class="field"><label>Description</label>
+        <textarea data-i="${i}" data-field="desc" style="min-height:55px">${proj.desc}</textarea></div>
+      <div class="field"><label>Tags (comma separated)</label>
+        <input type="text" value="${proj.tags.join(', ')}" data-i="${i}" data-field="tags"/></div>
+    `;
+    list.appendChild(div);
+  });
+
+  list.querySelectorAll('input[data-field="title"]').forEach(el => {
+    el.addEventListener('input', () => { projects[el.dataset.i].title = el.value; renderResume(); });
+  });
+  list.querySelectorAll('input[data-field="titleColor"]').forEach(el => {
+    el.addEventListener('input', () => { projects[el.dataset.i].titleColor = el.value; renderResume(); });
+  });
+  list.querySelectorAll('textarea[data-field="desc"]').forEach(el => {
+    el.addEventListener('input', () => { projects[el.dataset.i].desc = el.value; renderResume(); });
+  });
+  list.querySelectorAll('input[data-field="tags"]').forEach(el => {
+    el.addEventListener('input', () => {
+      projects[el.dataset.i].tags = el.value.split(',').map(t => t.trim()).filter(Boolean);
+      renderResume();
+    });
+  });
+  list.querySelectorAll('.rm-btn').forEach(el => {
+    el.addEventListener('click', () => { projects.splice(+el.dataset.i, 1); renderProjEditor(); renderResume(); });
+  });
+}
+
+document.getElementById('add-proj').addEventListener('click', () => {
+  projects.push({ title: 'New Project', titleColor: '#2563EB', desc: 'Describe this project.', tags: ['Tool'], tagColors: ['#2563EB'] });
+  renderProjEditor(); renderResume();
+});
+
+renderProjEditor();
+
+// ═══════════════════════════════════
+// LIVE INPUT → RENDER
+// ═══════════════════════════════════
+const liveInputIds = ['f-firstname','f-lastname','f-tagline','f-profile','f-phone','f-location',
+  'f-email','f-website','f-youtube','f-instagram','f-degree','f-university','f-year',
+  'f-edstatus','f-spec','f-avail','f-software','f-strengths','f-badges','f-achievements'];
+
+liveInputIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderResume);
+});
+
+// ═══════════════════════════════════
+// GET FORM DATA
+// ═══════════════════════════════════
+function val(id) { return (document.getElementById(id)||{}).value || ''; }
+
+function getData() {
+  return {
+    firstname:    val('f-firstname'),
+    lastname:     val('f-lastname'),
+    tagline:      val('f-tagline'),
+    profile:      val('f-profile'),
+    phone:        val('f-phone'),
+    location:     val('f-location'),
+    email:        val('f-email'),
+    website:      val('f-website'),
+    youtube:      val('f-youtube'),
+    instagram:    val('f-instagram'),
+    degree:       val('f-degree'),
+    university:   val('f-university'),
+    year:         val('f-year'),
+    edstatus:     val('f-edstatus'),
+    spec:         val('f-spec'),
+    avail:        val('f-avail'),
+    software:     val('f-software').split(',').map(s => s.trim()).filter(Boolean),
+    strengths:    val('f-strengths').split('\n').map(s => s.trim()).filter(Boolean),
+    badges:       val('f-badges').split(',').map(s => s.trim()).filter(Boolean).slice(0,4),
+    achievements: val('f-achievements').split('\n').map(s => s.trim()).filter(Boolean),
+    skills,
+    experiences,
+    projects,
+    photo:        photoDataUrl,
+  };
+}
+
+// ═══════════════════════════════════
+// BADGE COLORS
+// ═══════════════════════════════════
+const BADGE_COLORS = ['#2563EB','#7C3AED','#059669','#D97706'];
+const PILL_COLORS  = ['#38BDF8','#059669','#7C3AED','#DB2777','#D97706','#94A3B8'];
+const ACH_COLORS   = ['#D97706','#059669','#DB2777','#2563EB','#7C3AED','#94A3B8'];
+
+// ═══════════════════════════════════
+// RENDER RESUME HTML
+// ═══════════════════════════════════
+function renderResume() {
+  const d = getData();
+  const root = document.getElementById('resume-root');
+
+  // Dots for skill level
+  function dots(level) {
+    let h = '';
+    for (let i = 1; i <= 5; i++) {
+      h += `<span class="r-dot ${i <= level ? 'on' : 'half'}"></span>`;
+    }
+    return `<span class="r-dots">${h}</span>`;
+  }
+
+  // Sidebar pills
+  const pillHtml = d.software.map((sw, i) => {
+    const c = PILL_COLORS[i % PILL_COLORS.length];
+    return `<span class="r-pill" style="color:${c};border-color:${c};background:${c}22">${sw}</span>`;
+  }).join('');
+
+  // Sidebar contact
+  const contact = [
+    { label: 'TEL',  val: d.phone,     color: '#38BDF8' },
+    { label: 'LOC',  val: d.location,  color: '#38BDF8' },
+    { label: 'MAIL', val: d.email,     color: '#38BDF8' },
+    { label: 'WEB',  val: d.website,   color: '#38BDF8' },
+    { label: 'YT',   val: d.youtube,   color: '#DB2777' },
+    { label: 'IG',   val: d.instagram, color: '#7C3AED' },
+  ].filter(c => c.val);
+
+  // Badges
+  const badgesHtml = d.badges.map((b, i) => {
+    const c = BADGE_COLORS[i % BADGE_COLORS.length];
+    return `<span class="r-badge" style="color:${c};border-color:${c};background:${c}18">${b}</span>`;
+  }).join('');
+
+  // Experience cards
+  const expHtml = d.experiences.map(exp => {
+    const bullets = exp.bullets.map(b =>
+      `<div class="r-exp-bullet" style="--bullet-color:${exp.accentColor}">${b}</div>`
+    ).join('');
+    return `
+      <div class="r-exp-card" style="border-left-color:${exp.accentColor};">
+        <div class="r-exp-top">
+          <span class="r-exp-title">${exp.title}</span>
+          ${exp.label ? `<span class="r-exp-label" style="color:${exp.labelColor||'#059669'}">${exp.label}</span>` : ''}
+        </div>
+        ${bullets}
+      </div>`;
+  }).join('');
+
+  // Projects
+  const projHtml = d.projects.map(proj => {
+    const tagsH = proj.tags.map((t, i) => {
+      const c = (proj.tagColors||[])[i] || PILL_COLORS[i % PILL_COLORS.length];
+      return `<span class="r-proj-tag" style="color:${c};border-color:${c};background:${c}18">${t}</span>`;
+    }).join('');
+    return `
+      <div class="r-proj-card">
+        <div class="r-proj-title" style="color:${proj.titleColor};border-bottom-color:${proj.titleColor}44">${proj.title}</div>
+        <div class="r-proj-desc">${proj.desc}</div>
+        <div class="r-proj-tags">${tagsH}</div>
+      </div>`;
+  }).join('');
+
+  // Achievements
+  const achHtml = d.achievements.map((a, i) => {
+    const c = ACH_COLORS[i % ACH_COLORS.length];
+    return `<span class="r-ach-item" style="color:${c}">${a}</span>`;
+  }).join('');
+
+  root.innerHTML = `
+    <!-- SIDEBAR -->
+    <div class="r-sidebar">
+      <div class="r-photo-wrap">
+        <div class="r-photo-ring">
+          ${d.photo
+            ? `<img src="${d.photo}" alt="photo"/>`
+            : `<div class="r-photo-placeholder">👤</div>`}
+        </div>
+      </div>
+
+      <div class="r-name">
+        <span class="r-name-first">${d.firstname.toUpperCase()}</span>
+        <span class="r-name-last">${d.lastname.toUpperCase()}</span>
+        <div class="r-name-divider"></div>
+        <div class="r-tagline">${d.tagline}</div>
+      </div>
+
+      <div class="r-s-section">
+        <div class="r-s-heading">Contact</div>
+        ${contact.map(c => `
+          <div class="r-contact-row">
+            <span class="r-contact-label" style="color:${c.color}">${c.label}</span>
+            <span class="r-contact-val">${c.val}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="r-s-section">
+        <div class="r-s-heading">Skills</div>
+        ${d.skills.map(sk => `
+          <div class="r-skill-row">
+            <span class="r-skill-name">${sk.name}</span>
+            ${dots(sk.level)}
+          </div>`).join('')}
+      </div>
+
+      <div class="r-s-section">
+        <div class="r-s-heading">Software</div>
+        <div class="r-pills">${pillHtml}</div>
+      </div>
+
+      <div class="r-s-section">
+        <div class="r-s-heading">Strengths</div>
+        ${d.strengths.map(s => `<div class="r-strength">${s}</div>`).join('')}
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="r-main">
+      <!-- Badge bar -->
+      <div class="r-badge-bar">
+        <div class="r-badges">${badgesHtml}</div>
+        <div class="r-avail">${d.avail}</div>
+      </div>
+
+      <!-- Profile -->
+      <div class="r-m-section">
+        <div class="r-m-heading">Profile</div>
+        <p class="r-profile-text">${d.profile}</p>
+      </div>
+
+      <!-- Education -->
+      <div class="r-m-section">
+        <div class="r-m-heading">Education</div>
+        <div class="r-edu-card">
+          <div class="r-edu-top">
+            <span class="r-edu-degree">${d.degree}</span>
+            <span class="r-edu-year">${d.year}</span>
+          </div>
+          <div class="r-edu-uni">${d.university} · ${d.edstatus}</div>
+          <div class="r-edu-spec">Specialization: ${d.spec}</div>
+        </div>
+      </div>
+
+      <!-- Experience -->
+      <div class="r-m-section">
+        <div class="r-m-heading">Experience</div>
+        ${expHtml}
+      </div>
+
+      <!-- Projects -->
+      <div class="r-m-section">
+        <div class="r-m-heading">Featured Projects</div>
+        <div class="r-projects-row">${projHtml}</div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="r-m-section">
+        <div class="r-m-heading">Achievements</div>
+        <div class="r-ach-card">
+          <div class="r-ach-row">${achHtml}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Scale preview to fit column
+  scalePreview();
+}
+
+// ═══════════════════════════════════
+// SCALE PREVIEW TO FIT
+// ═══════════════════════════════════
+function scalePreview() {
+  const preview = document.getElementById('resume-preview');
+  const col = document.querySelector('.preview-col');
+  if (!col) return;
+  const availW = col.clientWidth;
+  const scale = availW / 794;
+  preview.style.transform = `scale(${scale})`;
+  preview.style.transformOrigin = 'top left';
+  preview.style.width = '794px';
+  preview.style.height = (1123 * scale) + 'px'; // reserve correct height
+  preview.parentElement.style.height = (1123 * scale) + 'px';
+}
+
+window.addEventListener('resize', scalePreview);
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════
+// DOWNLOAD PDF
+// ═══════════════════════════════════
+document.getElementById('dl-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('dl-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating PDF...';
+
+  try {
+    // Render at full 794px width temporarily
+    const resumeEl = document.getElementById('resume-root');
+    const preview  = document.getElementById('resume-preview');
+
+    // Temporarily remove scaling for capture
+    const prevTransform = preview.style.transform;
+    preview.style.transform = 'none';
+    preview.style.width = '794px';
+
+    await new Promise(r => setTimeout(r, 150)); // allow repaint
+
+    const canvas = await html2canvas(resumeEl, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#F0F4FF',
+      width: 794,
+      windowWidth: 794,
+    });
+
+    preview.style.transform = prevTransform;
+    scalePreview();
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.97);
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+    const d = getData();
+    const name = (d.firstname + '_' + d.lastname).replace(/\s+/g, '_');
+    pdf.save(`${name}_Resume.pdf`);
+
+    showToast('✓ PDF Downloaded!');
+  } catch(e) {
+    console.error(e);
+    showToast('⚠ Error generating PDF');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⬇ Download PDF Resume';
+});
+
+// ═══════════════════════════════════
+// INITIAL RENDER
+// ═══════════════════════════════════
+renderResume();
+</script>
+</body>
+</html>
